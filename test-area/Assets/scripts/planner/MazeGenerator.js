@@ -4,7 +4,7 @@ public class MazeGenerator extends MonoBehaviour {
 	var mapSize : int;
 	var scale : float = 3.0;
 	var models : GameObject[];
-	var pieces : Array;
+	var mazeBlocks : Array;
 	/*
 	@inputs
 	@outputs
@@ -19,17 +19,23 @@ public class MazeGenerator extends MonoBehaviour {
 	@TODO: null
 	*/
 	function Reset () {
-		pieces = Array();
+		mazeBlocks = Array();
 		scale = 3.0;
-		MazeBlock.DEBUG = DEBUG;
+		MazeBlock.DEBUG = DEBUG; //pass our debug constant to children
 	}
 	/*
 	@use called before first frame update
 	@TODO: null
 	*/
 	function Start () {
-		MazeBlock.scale = scale;
-		GenerateMaze();
+		Debug.Log("Generating maze of size " + mapSize);
+		if(mapSize%2==0) mapSize+=1; //make sure map size is odd
+		//MazeBlock.scale = scale;
+		//do {
+			GenerateMaze();
+			//FixWalls();
+		//} while(MergeRooms()==false);
+		//DeleteUnmarked();
 	}
 	function Update() {
 		if(DEBUG)
@@ -43,19 +49,81 @@ public class MazeGenerator extends MonoBehaviour {
 	@TODO: null
 	*/
 	public function GenerateMaze() {
-		pieces = Array();
-		Debug.Log("Generating maze of size " + mapSize);
-		for(var x=-mapSize; x< mapSize; x++) {
-			for(var y=-mapSize; y<mapSize; y++) {
-				Debug.Log(x+","+y);
-				var piece = gameObject.AddComponent(MazeBlock);
-				piece.model = models[0];
-				piece.x = x;
-				piece.y = y;
-				pieces.Add(piece);
+		mazeBlocks = Array();
+		var center = Mathf.floor(mapSize/2);
+
+		//how many blocks are in the current edge
+		//@TODO: How does that refer to the name 'rotAdd?'
+		var rotAdd = 0.5;
+
+		//up, right, down, left
+		var dir = 0;
+
+		var edgeCount = 0;
+
+		//Total number of edges
+		//@TODO: does this mean the width?
+		var edgeTotal = mapSize + (mapSize-1)
+
+		//Current maze block
+		var curBlock = center * mapSize + center;
+		//Loops through spiral until all blocks have been calculated
+		while(edgeCount < edgeTotal){
+
+			//To avoid going off the maze map on the last edge
+			if(edgeCount == edgeTotal - 1){
+				rotAdd-=1;
 			}
+
+			//Counts though number of block needed for current edges
+			for(i = 0; i < rotAdd; i++){
+				//Switches the current block in the correct direction and gets surrounding blocks
+				switch(dir){
+					case 0:	//Up
+						//Changes Current Block
+						curBlock -= mapSize;
+						break;
+
+					case 1: //Right
+						curBlock++;
+						break;
+
+					case 2: //Down
+						curBlock += mapSize;
+						break;
+
+					case 3: //Left
+						curBlock--;
+						break;
+
+					default: //How did you get here?
+						break;
+				}
+				//Generate the current block
+				if(curBlock <= mazeBlocks.length){
+
+					var piece = gameObject.AddComponent(MazeBlock);
+					piece.model = models[0];
+					piece.x = x;
+					piece.y = y;
+					mazeBlocks.Add(piece);
+
+					mazeBlocks[curBlock].createBlock();
+				}
+			}
+
+			//Adds to the number of edges of the spiral
+			edgeCount++;
+
+			//Changes direction clock-wise
+			dir = (dir + 1) % 4;
+
+			//Adds the the number of blocks in an edge
+			rotAdd += 0.5;
 		}
-	}
+
+		return true;
+	};
 
 	/*
 	@inputs
